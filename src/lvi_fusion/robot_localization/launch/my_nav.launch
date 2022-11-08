@@ -1,0 +1,27 @@
+<launch>
+  <rosparam command="load" file="$(find robot_localization)/params/navsat_transform_template.yaml" />
+
+  <node pkg="robot_localization" type="navsat_transform_node" name="navsat_transform" clear_params="true" output="screen">
+      <remap from="imu/data" to="/imu/data"/>
+      <remap from="gps/fix" to="/gps/fix"/>
+      <remap from="odometry/gps" to="/odometry/gps"/>      
+      <remap from="gps/filtered" to="/odometry/filtered"/>
+  </node> 
+
+  <node pkg="tf2_ros" type="static_transform_publisher" name="map_to_odom" args="0 0 0 0 0 0  map  odom " />
+  <node pkg="tf2_ros" type="static_transform_publisher" name="odom_to_base_link" args="0 0 0 0 0 0  odom imu_link" />
+  <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="odom_to_lidar" args="0 0 0 0 0 0  odom lidar" /> -->
+
+  <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_imu_link" args="0 0 0 0 0 0  base_link imu_link" /> -->
+  <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_gps" args="0 0 0 0 0 0  imu_link gps" /> -->
+
+  <node name="ekf_localization_node" pkg="robot_localization" type="ekf_localization_node" clear_params="true" required="true" output="screen">
+    <rosparam command="load" file="$(find robot_localization)/params/params.yaml" /> 
+    <remap from="odometry/filtered" to="/odometry/filtered"/>
+
+    <!-- <param name="odom0" value="odom"/> -->
+    <!-- <param name="imu0" value="/mobile_base/sensors/imu_data"/>  -->
+
+
+  </node>
+</launch>

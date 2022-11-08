@@ -1,0 +1,94 @@
+Lidar_front_end:
+   lidar_type: 1   # 1 for Livox-avia, 3 for Ouster-OS1-64
+   N_SCANS: 6
+   Horizon_SCAN: 1800   # 旋转激光雷达需要设置这个参数
+   using_raw_point: 1
+   point_step: 1
+   point_filter_num: 1
+lvi_fusion_mapping:
+   keyframeMeterGap: 0.5
+   keyframeDegGap: 3.0
+   
+lvi_fusion_common:
+   if_dump_log: 0                   # If recording ESIKF update log. [default = 0]
+   record_offline_map: 1            # If recording offline map. [default = 1]
+   pub_pt_minimum_views: 3          # Publish points which have been render up to "pub_pt_minimum_views" time. [default = 3]
+   minimum_pts_size: 0.01           # The minimum distance for every two points in Global map (unit in meter). [default = 0.01] 
+   image_downsample_ratio: 1        # The downsample ratio of the input image. [default = 1]
+   estimate_i2c_extrinsic: 1        # If enable estimate the extrinsic between camera and IMU. [default = 1] 
+   estimate_intrinsic: 1            # If enable estimate the online intrinsic calibration of the camera lens. [default = 1] 
+   maximum_vio_tracked_pts: 600     # The maximum points for tracking. [default = 600]
+   append_global_map_point_step: 4  # The point step of append point to global map. [default = 4]
+   imu_rate: 150
+   gpsTopic: "/gps/fix"  
+   gpsOdomTopic: "/gps/correct_odom"  #/odometry/gps   #odometry/navsat
+   mappingProcessInterval: 0.1
+   intialMethod: "gps"  # gps  human
+   initialPose: [0,0,0]
+   optimization_with_GPS: true
+   surroundingkeyframeAddingDistThreshold: 1.0   # meters, regulate keyframe adding threshold
+   surroundingkeyframeAddingAngleThreshold: 0.2  # radians, regulate keyframe adding threshold
+   mappingSurfLeafSize: 0.4
+   numberOfCores: 20                           # number of cores for mapping optimization
+   gpsPoseProportion: 0.0                           # https://github.com/TixiaoShan/LIO-SAM/issues/3
+   evalFormat: "kitti"        # in your home folder, starts and ends with "/". Warning: the code deletes "LOAM" folder then recreates it. See "mapOptimization" for implementation
+     # Visualization
+   globalMapVisualizationSearchRadius: 1000.0    # meters, global map visualization radius
+
+    # Loop closure
+   loopClosureEnableFlag: true
+   loopClosureFrequency: 1.0                     # Hz, regulate loop closure constraint add frequency 1.0
+   historyKeyframeSearchNum: 25                  # number of hostory key frames will be fused into a submap for loop closure
+   historyKeyframeSearchRadius: 15.0             # meters, key frame that is within n meters from current pose will be considerd for loop closure
+   historyKeyframeFitnessScore: 0.5             # icp threshold, the smaller the better alignment
+   historyKeyframeSearchTimeDiff: 30.0           # seconds, key frame that is n seconds older will be considered for loop closure
+   surroundingKeyframeSize: 50                   # submap size (when loop closure enabled)     50
+
+   #GPS
+   poseCovThreshold: 0.4                      # m^2, threshold for using GPS data   #0.4
+   gpsCovThreshold: 1.0                        # m^2, threshold for using GPS data  #1.0
+   gpsAddDis: 0.1                              # 添加GPS因子的距离
+   useGpsElevation: true                      # 海拔高度，是否使用gps确定z的位置if GPS elevation is bad, set to "false"
+
+lvi_fusion_vio:
+   image_width: 1920
+   image_height: 1080
+   camera_intrinsic:
+      [1.3782484381601976e+03, 0., 9.4923537607361527e+02, 
+      0., 1.3774391089738722e+03, 5.5980336240677093e+02, 
+       0., 0., 1.] 
+   camera_dist_coeffs: [-5.2974332657706102e-01, 3.2767975208866640e-01, 1.3191665935663615e-03, -1.8362775572969896e-04, -1.1962494006069575e-01]  #k1, k2, p1, p2, k3
+   # Rci
+   # Fine extrinsic value. form camera-LiDAR calibration.
+   camera_ext_R:
+         [-1.2555049209225899e-02, 8.4888927618279597e-03, 9.9988514812403939e-01, 
+                -9.9896898413621826e-01, 4.3522660190650653e-02, -1.2913047037065140e-02,
+                -4.3627279003007002e-02, -9.9901637461535508e-01, 7.9337114383144502e-03
+               ]
+   # camera_ext_t: [0.050166, 0.0474116, -0.0312415] 
+   camera_ext_t: [1.0550892592087006e-01, -5.5408369597918557e-03,-1.1455775418068616e-03] 
+   # Rough extrinsic value, form CAD model, is not correct enough, but can be online calibrated in our datasets.
+   # camera_ext_R:
+   #    [0, 0, 1,
+   #     -1, 0, 0,
+   #     0, -1, 0]
+   # camera_ext_t: [0,0,0] 
+   
+lvi_fusion_lio:      
+   dense_map_enable: true  # set true if save dense map
+   voxel_downsample_size_surf: 0.1  #downsample for keyframe, default: 0.3
+   lio_update_point_step: 4   # Point step used for LIO update.  
+   max_iteration: 4           # Maximum times of LIO esikf.
+   lidar_time_delay: 0        # The time-offset between LiDAR and IMU, provided by user. 
+   filter_size_corner: 0.40   #dawn modify
+   filter_size_surf: 0.40   #dawn modify
+   filter_size_surf_z: 0.40   #dawn modify
+   filter_size_map: 0.40   #dawn modify
+   tli: [-0.04165, -0.02326, 0.0284]
+  # extrinsicTrans: [0, 0, 0]
+  # origin
+   Rli: [1.0,   0.0,  0.0,
+         0.0,   1.0,  0.0,
+         0.0,   0.0,  1.0]
+ 
+

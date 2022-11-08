@@ -1,0 +1,53 @@
+# 雷达topic没有time 和ring运行不了
+Lidar_front_end:
+   lidar_type: 4   # 1 for Livox-avia,2 for velodyne 3 for Ouster-OS1- 4rslidar
+   N_SCANS: 32  #6 for Livox-avia,
+   Horizon_SCAN: 2000   # 旋转激光雷达需要设置这个参数 rslidar
+   using_raw_point: 1
+   point_step: 1
+   point_filter_num: 4
+
+lvi_fusion_common:
+   if_dump_log: 0                   # If recording ESIKF update log. [default = 0]
+   record_offline_map: 1            # If recording offline map. [default = 1]
+   pub_pt_minimum_views: 3          # Publish points which have been render up to "pub_pt_minimum_views" time. [default = 3]
+   minimum_pts_size: 0.01           # The minimum distance for every two points in Global map (unit in meter). [default = 0.01] 
+   image_downsample_ratio: 1        # The downsample ratio of the input image. [default = 1]
+   estimate_i2c_extrinsic: 1        # If enable estimate the extrinsic between camera and IMU. [default = 1] 
+   estimate_intrinsic: 1            # If enable estimate the online intrinsic calibration of the camera lens. [default = 1] 
+   maximum_vio_tracked_pts: 600     # The maximum points for tracking. [default = 600]
+   append_global_map_point_step: 4  # The point step of append point to global map. [default = 4]
+   imu_rate: 100
+
+lvi_fusion_vio:
+   
+   image_width: 2048
+   image_height: 1536
+   camera_intrinsic:
+      [1857.4752797615988, 0., 1039.692658811044, 
+        0., 1869.2155909761746, 739.3362262994145, 
+        0., 0., 1. ] 
+   camera_dist_coeffs: [-3.0451652061637519e-01, 3.8894492749157322e-02, 1.0517466490567872e-03, -5.5095449411338973e-04, 1.7054732639063463e-01]  #k1, k2, p1, p2, k3
+   # Fine extrinsic value. form camera-LiDAR calibration.
+   # Rci
+   camera_ext_R:
+         [  -0.999905 , 0.00473247,   0.0129318,   
+   -0.01299,  -0.0124894,   -0.999838,  
+-0.00457019,   -0.999911,   0.0125497]
+   # camera_ext_t: [0.050166, 0.0474116, -0.0312415] 
+   camera_ext_t: [ 0.0238222,-0.0286134, -0.0411836] 
+   # Rough extrinsic value, form CAD model, is not correct enough, but can be online calibrated in our datasets.
+   # camera_ext_R:
+   #    [0, 0, 1,
+   #     -1, 0, 0,
+   #     0, -1, 0]
+   # camera_ext_t: [0,0,0] 
+   
+lvi_fusion_lio:          
+   lio_update_point_step: 4   # Point step used for LIO update.  
+   max_iteration: 2           # Maximum times of LIO esikf.
+   lidar_time_delay: 0        # The time-offset between LiDAR and IMU, provided by user. 
+   filter_size_corner: 0.30   
+   filter_size_surf: 0.30
+   filter_size_surf_z: 0.30
+   filter_size_map: 0.30
