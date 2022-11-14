@@ -9,17 +9,19 @@
 using namespace std;
 
 // 去掉无穷点
-#define IS_VALID( a ) ( ( abs( a ) > 1e8 ) ? true : false )
+#define IS_VALID(a) ((abs(a) > 1e8) ? true : false)
 
-namespace velodyne_ros {
-struct EIGEN_ALIGN16 Point {
-    PCL_ADD_POINT4D;
-    float intensity;
-    float time;
-    std::uint16_t ring;
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-};
-}  // namespace velodyne_ros
+namespace velodyne_ros
+{
+    struct EIGEN_ALIGN16 Point
+    {
+        PCL_ADD_POINT4D;
+        float intensity;
+        float time;
+        std::uint16_t ring;
+        EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    };
+} // namespace velodyne_ros
 
 // clang-format off
 POINT_CLOUD_REGISTER_POINT_STRUCT(velodyne_ros::Point,
@@ -250,7 +252,7 @@ int main( int argc, char **argv )
         break;
 
     case rslidar:
-        printf( "VELO16\n" );
+        printf( "RSLIDAR\n" );
   
         sub_points = n.subscribe( "/rslidar_points", 1000, rs32_handler, ros::TransportHints().tcpNoDelay() );
 
@@ -341,108 +343,109 @@ void horizon_handler( const livox_ros_driver::CustomMsg::ConstPtr &msg )
                 // Remove the bad quality points
                 continue;
             }
-        // clang-format on
-            pl_full[ i ].x = msg->points[ i ].x;
-            pl_full[ i ].y = msg->points[ i ].y;
-            pl_full[ i ].z = msg->points[ i ].z;
-            pl_full[ i ].intensity = msg->points[ i ].reflectivity;
+            // clang-format on
+            pl_full[i].x = msg->points[i].x;
+            pl_full[i].y = msg->points[i].y;
+            pl_full[i].z = msg->points[i].z;
+            pl_full[i].intensity = msg->points[i].reflectivity;
 
-            pl_full[ i ].curvature = msg->points[ i ].offset_time / float( 1000000 ); // use curvature as time of each laser points
+            pl_full[i].curvature = msg->points[i].offset_time / float(1000000); // use curvature as time of each laser points
 
-            if ( ( std::abs( pl_full[ i ].x - pl_full[ i - 1 ].x ) > 1e-7 ) || ( std::abs( pl_full[ i ].y - pl_full[ i - 1 ].y ) > 1e-7 ) ||
-                 ( std::abs( pl_full[ i ].z - pl_full[ i - 1 ].z ) > 1e-7 ) )
+            if ((std::abs(pl_full[i].x - pl_full[i - 1].x) > 1e-7) || (std::abs(pl_full[i].y - pl_full[i - 1].y) > 1e-7) ||
+                (std::abs(pl_full[i].z - pl_full[i - 1].z) > 1e-7))
             {
-                pl_buff[ msg->points[ i ].line ].push_back( pl_full[ i ] );
+                pl_buff[msg->points[i].line].push_back(pl_full[i]);
             }
         }
     }
-    if ( pl_buff.size() != N_SCANS )
+    if (pl_buff.size() != N_SCANS)
     {
         return;
     }
-    if ( pl_buff[ 0 ].size() <= 7 )
+    if (pl_buff[0].size() <= 7)
     {
         return;
     }
 
     // 遍历每条scan
-    for ( int j = 0; j < N_SCANS; j++ )
+    for (int j = 0; j < N_SCANS; j++)
     {
-        pcl::PointCloud< PointType > &pl = pl_buff[ j ];
-        vector< orgtype > &           types = typess[ j ];
+        pcl::PointCloud<PointType> &pl = pl_buff[j];
+        vector<orgtype> &types = typess[j];
         plsize = pl.size();
-        if ( plsize < 7 )
+        if (plsize < 7)
         {
             continue;
         }
-        types.resize( plsize );
+        types.resize(plsize);
         plsize--;
-        for ( uint pt_idx = 0; pt_idx < plsize; pt_idx++ )
+        for (uint pt_idx = 0; pt_idx < plsize; pt_idx++)
         {
-            types[ pt_idx ].range = pl[ pt_idx ].x * pl[ pt_idx ].x + pl[ pt_idx ].y * pl[ pt_idx ].y;
-            vx = pl[ pt_idx ].x - pl[ pt_idx + 1 ].x;
-            vy = pl[ pt_idx ].y - pl[ pt_idx + 1 ].y;
-            vz = pl[ pt_idx ].z - pl[ pt_idx + 1 ].z;
+            types[pt_idx].range = pl[pt_idx].x * pl[pt_idx].x + pl[pt_idx].y * pl[pt_idx].y;
+            vx = pl[pt_idx].x - pl[pt_idx + 1].x;
+            vy = pl[pt_idx].y - pl[pt_idx + 1].y;
+            vz = pl[pt_idx].z - pl[pt_idx + 1].z;
             // std::cout<<vx<<" "<<vx<<" "<<vz<<" "<<std::endl;
         }
         // plsize++;
-        types[ plsize ].range = pl[ plsize ].x * pl[ plsize ].x + pl[ plsize ].y * pl[ plsize ].y;
-        give_feature( pl, types, pl_corn, pl_surf );
+        types[plsize].range = pl[plsize].x * pl[plsize].x + pl[plsize].y * pl[plsize].y;
+        give_feature(pl, types, pl_corn, pl_surf);
     }
-    if ( pl_surf.points.size() < 100 )
+    if (pl_surf.points.size() < 100)
     {
         return;
     }
     ros::Time ct;
-    ct.fromNSec( msg->timebase ); 
-    pub_func( pl_full, pub_full, msg->header.stamp );
-    pub_func( pl_surf, pub_surf, msg->header.stamp );
-    pub_func( pl_corn, pub_corn, msg->header.stamp );
+    ct.fromNSec(msg->timebase);
+    pub_func(pl_full, pub_full, msg->header.stamp);
+    pub_func(pl_surf, pub_surf, msg->header.stamp);
+    pub_func(pl_corn, pub_corn, msg->header.stamp);
 }
 
-int orders[ 16 ] = { 0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15 };
+int orders[16] = {0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15};
 
 // 当前点到原点的距离
 template <typename point_type>
 inline float pointDistance(point_type p)
 {
-    return sqrt(p.x*p.x + p.y*p.y + p.z*p.z);
+    return sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
 }
 
-template<typename T>
-inline bool has_nan(T point) {
+template <typename T>
+inline bool has_nan(T point)
+{
 
     // remove nan point, or the feature assocaion will crash, the surf point will containing nan points
     // pcl remove nan not work normally
     // ROS_ERROR("Containing nan point!");
-    if (isnan(point.x) || isnan(point.y) || isnan(point.z)) {
+    if (isnan(point.x) || isnan(point.y) || isnan(point.z))
+    {
         return true;
-    } else {
+    }
+    else
+    {
         return false;
     }
 }
-
 
 //把有range值的fullcloud 赋值给 extractedCloud
 //记录startRingIndex、endRingIndex、pointColInd、pointRange
 void cloudExtraction()
 {
 
- 
-        
     int count = 0;
     // extract segmented cloud for lidar odometry
-  
+
     for (int i = 0; i < N_SCANS; ++i) // 16
     {
         cloudInfo.startRingIndex[i] = count - 1 + 5;
-    
-        for (int j = 0; j < Horizon_SCAN; ++j)  // 1800
+
+        for (int j = 0; j < Horizon_SCAN; ++j) // 1800
         {
-         
-            if (rangeMat.at<float>(i,j)!=FLT_MAX)//   labelMat.at<int>(i,j) > 0 || groundMat.at<int8_t>(i,j) == 1 rangeMat.at<float>(i,j)!=FLT_MAX
+
+            if (rangeMat.at<float>(i, j) != FLT_MAX) //   labelMat.at<int>(i,j) > 0 || groundMat.at<int8_t>(i,j) == 1 rangeMat.at<float>(i,j)!=FLT_MAX
             {
-            
+
                 // if (labelMat.at<int>(i,j) == 999999){
                 //     continue;
                 // }
@@ -453,48 +456,40 @@ void cloudExtraction()
                 //         continue;
                 // }
                 // mark the points' column index for marking occlusion later
-  
+
                 // cloudInfo.segmentedCloudGroundFlag[count] = (groundMat.at<int8_t>(i,j) == 1);
-       
+
                 cloudInfo.pointColInd[count] = j;
                 // cloudInfo.pointRowInd[count] = i;
                 // save range info
-     
-                cloudInfo.pointRange[count] = rangeMat.at<float>(i,j);
+
+                cloudInfo.pointRange[count] = rangeMat.at<float>(i, j);
                 // save extracted cloud
 
-                extractedCloud->push_back(fullCloud->points[j + i*Horizon_SCAN]);
+                extractedCloud->push_back(fullCloud->points[j + i * Horizon_SCAN]);
 
                 // size of extracted cloud
                 ++count;
-            
             }
         }
-        cloudInfo.endRingIndex[i] = count -1 - 5;
+        cloudInfo.endRingIndex[i] = count - 1 - 5;
     }
-  
-
 }
 //计算所有点的曲率
 void calculateSmoothness()
 {
     int cloudSize = extractedCloud->points.size();
- 
+
     for (int i = 5; i < cloudSize - 5; ++i)
     {
         // 前后各5个点与当前点的range差
-        float diffRange = cloudInfo.pointRange[i-5] + cloudInfo.pointRange[i-4]
-                        + cloudInfo.pointRange[i-3] + cloudInfo.pointRange[i-2]
-                        + cloudInfo.pointRange[i-1] - cloudInfo.pointRange[i] * 10
-                        + cloudInfo.pointRange[i+1] + cloudInfo.pointRange[i+2]
-                        + cloudInfo.pointRange[i+3] + cloudInfo.pointRange[i+4]
-                        + cloudInfo.pointRange[i+5];            
+        float diffRange = cloudInfo.pointRange[i - 5] + cloudInfo.pointRange[i - 4] + cloudInfo.pointRange[i - 3] + cloudInfo.pointRange[i - 2] + cloudInfo.pointRange[i - 1] - cloudInfo.pointRange[i] * 10 + cloudInfo.pointRange[i + 1] + cloudInfo.pointRange[i + 2] + cloudInfo.pointRange[i + 3] + cloudInfo.pointRange[i + 4] + cloudInfo.pointRange[i + 5];
 
         // 曲率
-        cloudCurvature[i] = diffRange*diffRange;//diffX * diffX + diffY * diffY + diffZ * diffZ;
+        cloudCurvature[i] = diffRange * diffRange; // diffX * diffX + diffY * diffY + diffZ * diffZ;
 
         cloudNeighborPicked[i] = 0; // 初始化赋值
-        cloudLabel[i] = 0; // 初始化赋值
+        cloudLabel[i] = 0;          // 初始化赋值
         // cloudSmoothness for sorting
         cloudSmoothness[i].value = cloudCurvature[i];
         cloudSmoothness[i].ind = i;
@@ -508,25 +503,29 @@ void markOccludedPoints()
 {
     int cloudSize = extractedCloud->points.size();
     // mark occluded points and parallel beam points
-    for (int i = 5; i < cloudSize-6; ++i)
+    for (int i = 5; i < cloudSize - 6; ++i)
     {
-        
+
         // occluded points
         float depth1 = cloudInfo.pointRange[i];
-        float depth2 = cloudInfo.pointRange[i+1];
+        float depth2 = cloudInfo.pointRange[i + 1];
         //两个点的列差值
-        int columnDiff = std::abs(int(cloudInfo.pointColInd[i+1] - cloudInfo.pointColInd[i]));
+        int columnDiff = std::abs(int(cloudInfo.pointColInd[i + 1] - cloudInfo.pointColInd[i]));
         // 两个点的水平距离分明很近，但是深度却差的很大，说明这两个点之间存在遮挡
-        if (columnDiff < 10){ // 10 pixel diff in range image
+        if (columnDiff < 10)
+        { // 10 pixel diff in range image
             // 哪边深度深，哪边被标记为已经筛选过，即不进行特征提取
-            if (depth1 - depth2 > 0.3){   // TODO if 0.3 is too small 
+            if (depth1 - depth2 > 0.3)
+            { // TODO if 0.3 is too small
                 cloudNeighborPicked[i - 5] = 1;
                 cloudNeighborPicked[i - 4] = 1;
                 cloudNeighborPicked[i - 3] = 1;
                 cloudNeighborPicked[i - 2] = 1;
                 cloudNeighborPicked[i - 1] = 1;
                 cloudNeighborPicked[i] = 1;
-            }else if (depth2 - depth1 > 0.3){
+            }
+            else if (depth2 - depth1 > 0.3)
+            {
                 cloudNeighborPicked[i + 1] = 1;
                 cloudNeighborPicked[i + 2] = 1;
                 cloudNeighborPicked[i + 3] = 1;
@@ -537,8 +536,8 @@ void markOccludedPoints()
         }
         // parallel beam
         // 平行光束
-        float diff1 = std::abs(float(cloudInfo.pointRange[i-1] - cloudInfo.pointRange[i]));
-        float diff2 = std::abs(float(cloudInfo.pointRange[i+1] - cloudInfo.pointRange[i]));
+        float diff1 = std::abs(float(cloudInfo.pointRange[i - 1] - cloudInfo.pointRange[i]));
+        float diff2 = std::abs(float(cloudInfo.pointRange[i + 1] - cloudInfo.pointRange[i]));
         // 两个相邻光束的range差的很大就可以认为是平行光速
         if (diff1 > 0.02 * cloudInfo.pointRange[i] && diff2 > 0.02 * cloudInfo.pointRange[i])
             cloudNeighborPicked[i] = 1;
@@ -554,17 +553,14 @@ void markOccludedPoints()
 void extractFeatures(pcl::PointCloud<PointType>::Ptr cornerCloud, pcl::PointCloud<PointType>::Ptr surfaceCloud)
 {
 
-
     // 一个水平线束的平面点 和其降采样
     pcl::PointCloud<PointType>::Ptr surfaceCloudScan(new pcl::PointCloud<PointType>());
     pcl::PointCloud<PointType>::Ptr surfaceCloudScanDS(new pcl::PointCloud<PointType>());
-
 
     for (int i = 0; i < N_SCANS; i++)
     {
         surfaceCloudScan->clear();
 
-        
         for (int j = 0; j < area_num; j++)
         {
             // 和loam中一样把点云分成了6段分别处理，确保特征点提取均匀
@@ -575,27 +571,31 @@ void extractFeatures(pcl::PointCloud<PointType>::Ptr cornerCloud, pcl::PointClou
             if (sp >= ep)
                 continue;
 
-                // 按照曲率从小到大排序
-            std::sort(cloudSmoothness.begin()+sp, cloudSmoothness.begin()+ep, by_value());
+            // 按照曲率从小到大排序
+            std::sort(cloudSmoothness.begin() + sp, cloudSmoothness.begin() + ep, by_value());
 
             int largestPickedNum = 0; // 被提取特征点的数量
             for (int k = ep; k >= sp; k--)
             {
                 // 因为上面对cloudSmoothness进行了一次从小到大排序，所以ind不一定等于k了
                 int ind = cloudSmoothness[k].ind;
-                if (cloudNeighborPicked[ind] == 0   // 还未被筛选
+                if (cloudNeighborPicked[ind] == 0          // 还未被筛选
                     && cloudCurvature[ind] > edgeThreshold //大于边的阈值
                     // && cloudInfo.segmentedCloudGroundFlag[ind] == false  // 不在地面点中找
-                    )
+                )
                 {
-                    if(k%2 != 0) continue;
+                    if (k % 2 != 0)
+                        continue;
                     largestPickedNum++;
-                    if (largestPickedNum <= 20){ // 曲率最大的20个点作为角点  //注意这里的k是倒着来的
+                    if (largestPickedNum <= 20)
+                    {                        // 曲率最大的20个点作为角点  //注意这里的k是倒着来的
                         cloudLabel[ind] = 1; //角点标记为1
-                        
+
                         cornerCloud->push_back(extractedCloud->points[ind]);
-                        cornerCloud->points.back().normal_x=1;
-                    } else {
+                        cornerCloud->points.back().normal_x = 1;
+                    }
+                    else
+                    {
                         break;
                     }
 
@@ -618,20 +618,20 @@ void extractFeatures(pcl::PointCloud<PointType>::Ptr cornerCloud, pcl::PointClou
                 }
             }
 
-            
             //提取所有满足阈值的平面点
             for (int k = sp; k <= ep; k++)
             {
                 int ind = cloudSmoothness[k].ind;
-                if (cloudNeighborPicked[ind] == 0 && cloudCurvature[ind] < surfThreshold 
-                // && cloudInfo.segmentedCloudGroundFlag[ind] == true // 只在地面点中找
+                if (cloudNeighborPicked[ind] == 0 && cloudCurvature[ind] < surfThreshold
+                    // && cloudInfo.segmentedCloudGroundFlag[ind] == true // 只在地面点中找
                 )
                 {
 
                     cloudLabel[ind] = -1;
                     cloudNeighborPicked[ind] = 1;
 
-                    for (int l = 1; l <= 5; l++) {
+                    for (int l = 1; l <= 5; l++)
+                    {
 
                         int columnDiff = std::abs(int(cloudInfo.pointColInd[ind + l] - cloudInfo.pointColInd[ind + l - 1]));
                         if (columnDiff > 10)
@@ -639,7 +639,8 @@ void extractFeatures(pcl::PointCloud<PointType>::Ptr cornerCloud, pcl::PointClou
 
                         cloudNeighborPicked[ind + l] = 1;
                     }
-                    for (int l = -1; l >= -5; l--) {
+                    for (int l = -1; l >= -5; l--)
+                    {
 
                         int columnDiff = std::abs(int(cloudInfo.pointColInd[ind + l] - cloudInfo.pointColInd[ind + l + 1]));
                         if (columnDiff > 10)
@@ -652,39 +653,42 @@ void extractFeatures(pcl::PointCloud<PointType>::Ptr cornerCloud, pcl::PointClou
             int largestPickedSurfNum = 0; // 被提取特征点的数量
             for (int k = sp; k <= ep; k++)
             {
-                if(k%  2 != 0) continue;  
+                if (k % 2 != 0)
+                    continue;
                 largestPickedSurfNum++;
-                if (largestPickedSurfNum <= 200){ // 曲率最大的20个点作为角点  //注意这里的k是倒着来的
-                    if (cloudLabel[k] <= 0){ 
+                if (largestPickedSurfNum <= 200)
+                { // 曲率最大的20个点作为角点  //注意这里的k是倒着来的
+                    if (cloudLabel[k] <= 0)
+                    {
                         // extractedCloud->points[k].normal_x = 2;
                         surfaceCloudScan->push_back(extractedCloud->points[k]);
-                        surfaceCloudScan->points.back().normal_x=2;
+                        surfaceCloudScan->points.back().normal_x = 2;
                     }
-                } else {
+                }
+                else
+                {
                     break;
                 }
-                
             }
         }
 
         surfaceCloudScanDS->clear();
 
-            
         Voxel_Sample.setInputCloud(surfaceCloudScan);
         Voxel_Sample.filter(*surfaceCloudScanDS);
-   
+
         *surfaceCloud += *surfaceCloudScanDS;
 
         // !PCL库的bug，降采样后normal_x被置1了
-        for(int i=0;i<surfaceCloud->points.size();i++){
-            surfaceCloud->points[i].normal_x =2;
+        for (int i = 0; i < surfaceCloud->points.size(); i++)
+        {
+            surfaceCloud->points[i].normal_x = 2;
         }
     }
-
 }
-pcl::PointCloud<PointType>::Ptr feats_surf( new pcl::PointCloud<PointType>() ); 
-pcl::PointCloud<PointType>::Ptr feats_corn( new pcl::PointCloud<PointType>() ); 
-void velo16_handler( const sensor_msgs::PointCloud2::ConstPtr &msg )
+pcl::PointCloud<PointType>::Ptr feats_surf(new pcl::PointCloud<PointType>());
+pcl::PointCloud<PointType>::Ptr feats_corn(new pcl::PointCloud<PointType>());
+void velo16_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
 {
     rangeMat = cv::Mat(N_SCANS, Horizon_SCAN, CV_32F, cv::Scalar::all(FLT_MAX));
     std::fill(fullCloud->points.begin(), fullCloud->points.end(), nanPoint);
@@ -694,41 +698,47 @@ void velo16_handler( const sensor_msgs::PointCloud2::ConstPtr &msg )
     cloudInfo.pointColInd.clear();
     cloudInfo.pointRange.clear();
 
-    pcl::PointCloud< PointType >::Ptr pl_corn, pl_surf;
+    pcl::PointCloud<PointType>::Ptr pl_corn, pl_surf;
     pl_corn.reset(new pcl::PointCloud<PointType>());
     pl_surf.reset(new pcl::PointCloud<PointType>());
 
     pcl::PointCloud<velodyne_ros::Point> pl_orig;
     pcl::fromROSMsg(*msg, pl_orig);
-    
+
     int plsize = pl_orig.points.size();
-    pl_corn->reserve( plsize );
-    pl_surf->reserve( plsize );
+    pl_corn->reserve(plsize);
+    pl_surf->reserve(plsize);
 
     /*** These variables only works when no point timestamps given ***/
-    double omega_l = 3.61;  // scan angular velocity
+    double omega_l = 3.61; // scan angular velocity
     std::vector<bool> is_first(N_SCANS, true);
-    std::vector<double> yaw_fp(N_SCANS, 0.0);    // yaw of first scan point
-    std::vector<float> yaw_last(N_SCANS, 0.0);   // yaw of last scan point
-    std::vector<float> time_last(N_SCANS, 0.0);  // last offset time
+    std::vector<double> yaw_fp(N_SCANS, 0.0);   // yaw of first scan point
+    std::vector<float> yaw_last(N_SCANS, 0.0);  // yaw of last scan point
+    std::vector<float> time_last(N_SCANS, 0.0); // last offset time
     /*****************************************************************/
-    
-    if (pl_orig.points[plsize - 1].time > 0) { // 自身带时间
+
+    if (pl_orig.points[plsize - 1].time > 0)
+    { // 自身带时间
         given_offset_time_ = true;
-    } else {  // 自身不带时间
+    }
+    else
+    { // 自身不带时间
         given_offset_time_ = false;
-        double yaw_first = atan2(pl_orig.points[0].y, pl_orig.points[0].x) * 57.29578;  // 第一个点的yaw
-        double yaw_end = yaw_first; // 最后一个点的yaw
-        int layer_first = pl_orig.points[0].ring; // 第一个点所在的层
-        for (uint i = plsize - 1; i > 0; i--) { // 倒排得到和第一个所在同一层的最后一个点
-            if (pl_orig.points[i].ring == layer_first) {
+        double yaw_first = atan2(pl_orig.points[0].y, pl_orig.points[0].x) * 57.29578; // 第一个点的yaw
+        double yaw_end = yaw_first;                                                    // 最后一个点的yaw
+        int layer_first = pl_orig.points[0].ring;                                      // 第一个点所在的层
+        for (uint i = plsize - 1; i > 0; i--)
+        { // 倒排得到和第一个所在同一层的最后一个点
+            if (pl_orig.points[i].ring == layer_first)
+            {
                 yaw_end = atan2(pl_orig.points[i].y, pl_orig.points[i].x) * 57.29578;
                 break;
             }
         }
     }
 
-    for (int i = 0; i < plsize; i++) {
+    for (int i = 0; i < plsize; i++)
+    {
         PointType added_pt;
 
         added_pt.normal_x = 0;
@@ -738,14 +748,16 @@ void velo16_handler( const sensor_msgs::PointCloud2::ConstPtr &msg )
         added_pt.y = pl_orig.points[i].y;
         added_pt.z = pl_orig.points[i].z;
         added_pt.intensity = pl_orig.points[i].intensity;
-        added_pt.curvature = pl_orig.points[i].time * time_scale_;  // curvature unit: ms
+        added_pt.curvature = pl_orig.points[i].time * time_scale_; // curvature unit: ms
 
         // 计算每个点的时间
-        if (!given_offset_time_) {
+        if (!given_offset_time_)
+        {
             int layer = pl_orig.points[i].ring;
             double yaw_angle = atan2(added_pt.y, added_pt.x) * 57.2957;
 
-            if (is_first[layer]) {
+            if (is_first[layer])
+            {
                 yaw_fp[layer] = yaw_angle;
                 is_first[layer] = false;
                 added_pt.curvature = 0.0;
@@ -755,39 +767,48 @@ void velo16_handler( const sensor_msgs::PointCloud2::ConstPtr &msg )
             }
 
             // compute offset time
-            if (yaw_angle <= yaw_fp[layer]) {
+            if (yaw_angle <= yaw_fp[layer])
+            {
                 added_pt.curvature = (yaw_fp[layer] - yaw_angle) / omega_l;
-            } else {
+            }
+            else
+            {
                 added_pt.curvature = (yaw_fp[layer] - yaw_angle + 360.0) / omega_l;
             }
 
-            if (added_pt.curvature < time_last[layer]) added_pt.curvature += 360.0 / omega_l;
+            if (added_pt.curvature < time_last[layer])
+                added_pt.curvature += 360.0 / omega_l;
 
             yaw_last[layer] = yaw_angle;
             time_last[layer] = added_pt.curvature;
         }
 
-        if (i % point_filter_num == 0) {
-             // 获得到原点的距离
-            float range = pointDistance(added_pt); 
-            if(range < blind) continue;
-            if (has_nan(added_pt)) continue;
+        if (i % point_filter_num == 0)
+        {
+            // 获得到原点的距离
+            float range = pointDistance(added_pt);
+            if (range < blind)
+                continue;
+            if (has_nan(added_pt))
+                continue;
             int rowIdn;
             rowIdn = pl_orig.points[i].ring;
-            if (rowIdn < 0 || rowIdn >= N_SCANS) continue;
+            if (rowIdn < 0 || rowIdn >= N_SCANS)
+                continue;
             // 如果有降采样，则每隔downsampleRate个取一个
-            // if (rowIdn % downsampleRate != 0) 
+            // if (rowIdn % downsampleRate != 0)
             //     continue;
 
-             if(fabs(added_pt.x) <1.1 &&fabs(added_pt.y)<2.5 ) continue;
+            if (fabs(added_pt.x) < 1.1 && fabs(added_pt.y) < 2.5)
+                continue;
 
             // 该点的水平角度
             float horizonAngle = atan2(added_pt.x, added_pt.y) * 180 / M_PI;
-        
+
             // 水平分辨率
 
             // 算在哪个竖直线id上
-            int columnIdn = -round((horizonAngle-90.0)/ang_res_x) + Horizon_SCAN/2;
+            int columnIdn = -round((horizonAngle - 90.0) / ang_res_x) + Horizon_SCAN / 2;
             if (columnIdn >= Horizon_SCAN)
                 columnIdn -= Horizon_SCAN;
 
@@ -799,78 +820,69 @@ void velo16_handler( const sensor_msgs::PointCloud2::ConstPtr &msg )
             rangeMat.at<float>(rowIdn, columnIdn) = range;
             int index = columnIdn + rowIdn * Horizon_SCAN;
             fullCloud->points[index] = added_pt;
-          
-           
         }
     }
-   
+
     cloudExtraction();
 
     calculateSmoothness();
-   
+
     markOccludedPoints();
 
-    extractFeatures(pl_corn,pl_surf);
-  
-
+    extractFeatures(pl_corn, pl_surf);
 
     *pl_surf += *pl_corn;
     // pl_surf->points.insert(pl_surf->points.end(),pl_corn->points.begin(),pl_corn->points.end());
- 
 
     // feats_surf->clear();
     // feats_corn->clear();
     // for(int i=0;i<pl_surf->points.size();i++){
-            
+
     //     if(pl_surf->points[i].normal_x==2){
     //         feats_corn->push_back(pl_surf->points[i]);
     //     }
     //     else{
-            
+
     //         feats_surf->push_back(pl_surf->points[i]);
     //     }
     // }
     // cout << "pl_surf->points.size()"<< pl_surf->points.size()<<endl;
     // cout << "feats_corn->points.size()"<< feats_corn->points.size()<<endl;
     // cout << "feats_surf->points.size()"<< feats_surf->points.size()<<endl;
-    
-    pub_func( *fullCloud, pub_full, msg->header.stamp );
 
-    pub_func( *pl_surf, pub_surf, msg->header.stamp );
+    pub_func(*fullCloud, pub_full, msg->header.stamp);
 
-    pub_func( *pl_corn, pub_corn, msg->header.stamp );
+    pub_func(*pl_surf, pub_surf, msg->header.stamp);
 
+    pub_func(*pl_corn, pub_corn, msg->header.stamp);
 }
 
-void rs32_handler( const sensor_msgs::PointCloud2::ConstPtr &msg )
+void rs32_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
 {
-    double                                 t1 = omp_get_wtime();
- 
-    pcl::PointCloud< PointType >           pl_full, // 全部的原始点云，use curvature as time of each laser points
-                                           pl_corn, 
-                                           pl_surf; // 降采样的原始点云
+    double t1 = omp_get_wtime();
+
+    pcl::PointCloud<PointType> pl_full, // 全部的原始点云，use curvature as time of each laser points
+        pl_corn,
+        pl_surf; // 降采样的原始点云
 
     pcl::PointCloud<rslidar_ros::Point> pl_orig; // 原始点云
     pcl::fromROSMsg(*msg, pl_orig);
-    int plsize = pl_orig.points.size();// 点数
+    int plsize = pl_orig.points.size(); // 点数
     pl_surf.reserve(plsize);
 
-   static double omega_l = 3.61;
+    static double omega_l = 3.61;
 
-   std::vector<bool> is_first(N_SCANS,true); // 是否是这一ring的第一个点
-    std::vector<double> yaw_fp(N_SCANS, 0.0);      // yaw of first scan point  //这一ring第一个点的yaw
-    std::vector<float> yaw_last(N_SCANS, 0.0);   // yaw of last scan point // 这一ring上一个点的yaw
-    std::vector<float> time_last(N_SCANS, 0.0);  // last offset time// 这一ring上一个点的time
+    std::vector<bool> is_first(N_SCANS, true);  // 是否是这一ring的第一个点
+    std::vector<double> yaw_fp(N_SCANS, 0.0);   // yaw of first scan point  //这一ring第一个点的yaw
+    std::vector<float> yaw_last(N_SCANS, 0.0);  // yaw of last scan point // 这一ring上一个点的yaw
+    std::vector<float> time_last(N_SCANS, 0.0); // last offset time// 这一ring上一个点的time
     /*****************************************************************/
 
-  
-
- 
     for (int i = 0; i < plsize; i++)
     {
         PointType added_pt;
         // cout<<"!!!!!!"<<i<<" "<<plsize<<endl;
-        
+
         added_pt.normal_x = 0;
         added_pt.normal_y = 0;
         added_pt.normal_z = 0;
@@ -878,141 +890,139 @@ void rs32_handler( const sensor_msgs::PointCloud2::ConstPtr &msg )
         added_pt.y = pl_orig.points[i].y;
         added_pt.z = pl_orig.points[i].z;
         added_pt.intensity = pl_orig.points[i].intensity;
-        added_pt.curvature = 0;  // curvature unit: ms
-    
-
+        added_pt.curvature = 0; // curvature unit: ms
 
         if (i % point_filter_num == 0)
         {
-            if(added_pt.x*added_pt.x+added_pt.y*added_pt.y+added_pt.z*added_pt.z > (blind * blind))
+            if (added_pt.x * added_pt.x + added_pt.y * added_pt.y + added_pt.z * added_pt.z > (blind * blind))
             {
-            pl_surf.points.push_back(added_pt);
+                pl_surf.points.push_back(added_pt);
             }
+        }
     }
-    }
-    
 
-    pub_func( pl_full, pub_full, msg->header.stamp );
-    pub_func( pl_surf, pub_surf, msg->header.stamp );
-    pub_func( pl_corn, pub_corn, msg->header.stamp );
+    pub_func(pl_full, pub_full, msg->header.stamp);
+    pub_func(pl_surf, pub_surf, msg->header.stamp);
+    pub_func(pl_corn, pub_corn, msg->header.stamp);
 }
 
-void velo16_handler1( const sensor_msgs::PointCloud2::ConstPtr &msg )
+void velo16_handler1(const sensor_msgs::PointCloud2::ConstPtr &msg)
 {
-    double                                 t1 = omp_get_wtime();
- 
-    pcl::PointCloud< PointType >           pl_full, // 全部的原始点云，use curvature as time of each laser points
-                                           pl_corn, 
-                                           pl_surf; // 降采样的原始点云
+    double t1 = omp_get_wtime();
+
+    pcl::PointCloud<PointType> pl_full, // 全部的原始点云，use curvature as time of each laser points
+        pl_corn,
+        pl_surf; // 降采样的原始点云
 
     pcl::PointCloud<velodyne_ros::Point> pl_orig; // 原始点云
     pcl::fromROSMsg(*msg, pl_orig);
-    int plsize = pl_orig.points.size();// 点数
+    int plsize = pl_orig.points.size(); // 点数
     pl_surf.reserve(plsize);
 
-   static double omega_l = 3.61;
+    static double omega_l = 3.61;
 
-   std::vector<bool> is_first(N_SCANS,true); // 是否是这一ring的第一个点
-    std::vector<double> yaw_fp(N_SCANS, 0.0);      // yaw of first scan point  //这一ring第一个点的yaw
-    std::vector<float> yaw_last(N_SCANS, 0.0);   // yaw of last scan point // 这一ring上一个点的yaw
-    std::vector<float> time_last(N_SCANS, 0.0);  // last offset time// 这一ring上一个点的time
+    std::vector<bool> is_first(N_SCANS, true);  // 是否是这一ring的第一个点
+    std::vector<double> yaw_fp(N_SCANS, 0.0);   // yaw of first scan point  //这一ring第一个点的yaw
+    std::vector<float> yaw_last(N_SCANS, 0.0);  // yaw of last scan point // 这一ring上一个点的yaw
+    std::vector<float> time_last(N_SCANS, 0.0); // last offset time// 这一ring上一个点的time
     /*****************************************************************/
 
     if (pl_orig.points[plsize - 1].time > 0) // 有时间
     {
-      given_offset_time_ = true;
+        given_offset_time_ = true;
     }
     else // 没有时间
     {
-      given_offset_time_ = false;
-      double yaw_first = atan2(pl_orig.points[0].y, pl_orig.points[0].x) * 57.29578; // 第一个点的yaw角，角度制
-      double yaw_end  = yaw_first; // 最后一个点的yaw角
-      int layer_first = pl_orig.points[0].ring; // 第一个点所在的线ID
-      for (uint i = plsize - 1; i > 0; i--)// note 这里是倒排
-      {
-        if (pl_orig.points[i].ring == layer_first) // 与第一个点共线
+        given_offset_time_ = false;
+        double yaw_first = atan2(pl_orig.points[0].y, pl_orig.points[0].x) * 57.29578; // 第一个点的yaw角，角度制
+        double yaw_end = yaw_first;                                                    // 最后一个点的yaw角
+        int layer_first = pl_orig.points[0].ring;                                      // 第一个点所在的线ID
+        for (uint i = plsize - 1; i > 0; i--)                                          // note 这里是倒排
         {
-          yaw_end = atan2(pl_orig.points[i].y, pl_orig.points[i].x) * 57.29578;
-          break;
+            if (pl_orig.points[i].ring == layer_first) // 与第一个点共线
+            {
+                yaw_end = atan2(pl_orig.points[i].y, pl_orig.points[i].x) * 57.29578;
+                break;
+            }
         }
-      }
     }
 
- 
     for (int i = 0; i < plsize; i++)
     {
-    PointType added_pt;
-    // cout<<"!!!!!!"<<i<<" "<<plsize<<endl;
-    
-    added_pt.normal_x = 0;
-    added_pt.normal_y = 0;
-    added_pt.normal_z = 0;
-    added_pt.x = pl_orig.points[i].x;
-    added_pt.y = pl_orig.points[i].y;
-    added_pt.z = pl_orig.points[i].z;
-    added_pt.intensity = pl_orig.points[i].intensity;
-    added_pt.curvature = pl_orig.points[i].time / 1000.0;  // curvature unit: ms
-    
-    if (!given_offset_time_)
-    {
-        int layer = pl_orig.points[i].ring;
-        double yaw_angle = atan2(added_pt.y, added_pt.x) * 57.2957;
+        PointType added_pt;
+        // cout<<"!!!!!!"<<i<<" "<<plsize<<endl;
 
-        if (is_first[layer])
+        added_pt.normal_x = 0;
+        added_pt.normal_y = 0;
+        added_pt.normal_z = 0;
+        added_pt.x = pl_orig.points[i].x;
+        added_pt.y = pl_orig.points[i].y;
+        added_pt.z = pl_orig.points[i].z;
+        added_pt.intensity = pl_orig.points[i].intensity;
+        added_pt.curvature = pl_orig.points[i].time / 1000.0; // curvature unit: ms
+
+        if (!given_offset_time_)
         {
-        // printf("layer: %d; is first: %d", layer, is_first[layer]);
-            yaw_fp[layer]=yaw_angle;
-            is_first[layer]=false;
-            added_pt.curvature = 0.0;
-            yaw_last[layer]=yaw_angle;
-            time_last[layer]=added_pt.curvature;
-            continue;
+            int layer = pl_orig.points[i].ring;
+            double yaw_angle = atan2(added_pt.y, added_pt.x) * 57.2957;
+
+            if (is_first[layer])
+            {
+                // printf("layer: %d; is first: %d", layer, is_first[layer]);
+                yaw_fp[layer] = yaw_angle;
+                is_first[layer] = false;
+                added_pt.curvature = 0.0;
+                yaw_last[layer] = yaw_angle;
+                time_last[layer] = added_pt.curvature;
+                continue;
+            }
+
+            // compute offset time
+            if (yaw_angle <= yaw_fp[layer])
+            {
+                added_pt.curvature = (yaw_fp[layer] - yaw_angle) / omega_l;
+            }
+            else
+            {
+                added_pt.curvature = (yaw_fp[layer] - yaw_angle + 360.0) / omega_l;
+            }
+
+            if (added_pt.curvature < time_last[layer])
+                added_pt.curvature += 360.0 / omega_l;
+
+            yaw_last[layer] = yaw_angle;
+            time_last[layer] = added_pt.curvature;
         }
 
-        // compute offset time
-        if (yaw_angle <= yaw_fp[layer])
+        if (i % point_filter_num == 0)
         {
-        added_pt.curvature = (yaw_fp[layer]-yaw_angle) / omega_l;
+            if (added_pt.x * added_pt.x + added_pt.y * added_pt.y + added_pt.z * added_pt.z > (blind * blind))
+            {
+                pl_surf.points.push_back(added_pt);
+            }
         }
-        else
-        {
-        added_pt.curvature = (yaw_fp[layer]-yaw_angle+360.0) / omega_l;
-        }
-
-        if (added_pt.curvature < time_last[layer])  added_pt.curvature+=360.0/omega_l;
-
-        yaw_last[layer] = yaw_angle;
-        time_last[layer]=added_pt.curvature;
     }
 
-    if (i % point_filter_num == 0)
-    {
-        if(added_pt.x*added_pt.x+added_pt.y*added_pt.y+added_pt.z*added_pt.z > (blind * blind))
-        {
-        pl_surf.points.push_back(added_pt);
-        }
-    }
-    }
-    
-
-    pub_func( pl_full, pub_full, msg->header.stamp );
-    pub_func( pl_surf, pub_surf, msg->header.stamp );
-    pub_func( pl_corn, pub_corn, msg->header.stamp );
+    pub_func(pl_full, pub_full, msg->header.stamp);
+    pub_func(pl_surf, pub_surf, msg->header.stamp);
+    pub_func(pl_corn, pub_corn, msg->header.stamp);
 }
 
-namespace ouster_ros {
+namespace ouster_ros
+{
 
-struct EIGEN_ALIGN16 Point {
-    PCL_ADD_POINT4D;
-    float intensity;
-    uint32_t t;
-    uint16_t reflectivity;
-    uint8_t ring;
-    uint16_t ambient;
-    uint32_t range;
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-};
-}  // namespace ouster_ros
+    struct EIGEN_ALIGN16 Point
+    {
+        PCL_ADD_POINT4D;
+        float intensity;
+        uint32_t t;
+        uint16_t reflectivity;
+        uint8_t ring;
+        uint16_t ambient;
+        uint32_t range;
+        EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    };
+} // namespace ouster_ros
 
 // clang-format off
 POINT_CLOUD_REGISTER_POINT_STRUCT(ouster_ros::Point,
@@ -1032,111 +1042,110 @@ POINT_CLOUD_REGISTER_POINT_STRUCT(ouster_ros::Point,
 void oust64_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
 {
     // cout << "oust64_handler" <<endl;
-    pcl::PointCloud< PointType > pl_processed;
-    pcl::PointCloud< ouster_ros::Point > pl_orig;
+    pcl::PointCloud<PointType> pl_processed;
+    pcl::PointCloud<ouster_ros::Point> pl_orig;
     // pcl::PointCloud<pcl::PointXYZI> pl_orig;
-    pcl::fromROSMsg( *msg, pl_orig );
+    pcl::fromROSMsg(*msg, pl_orig);
     uint plsize = pl_orig.size();
 
     double time_stamp = msg->header.stamp.toSec();
     pl_processed.clear();
-    pl_processed.reserve( pl_orig.points.size() );
-    for ( int i = 0; i < pl_orig.points.size(); i++ )
+    pl_processed.reserve(pl_orig.points.size());
+    for (int i = 0; i < pl_orig.points.size(); i++)
     {
-        double range = std::sqrt( pl_orig.points[ i ].x * pl_orig.points[ i ].x + pl_orig.points[ i ].y * pl_orig.points[ i ].y +
-                                  pl_orig.points[ i ].z * pl_orig.points[ i ].z );
-        if ( range < blind )
+        double range = std::sqrt(pl_orig.points[i].x * pl_orig.points[i].x + pl_orig.points[i].y * pl_orig.points[i].y +
+                                 pl_orig.points[i].z * pl_orig.points[i].z);
+        if (range < blind)
         {
             continue;
         }
         Eigen::Vector3d pt_vec;
-        PointType       added_pt;
-        added_pt.x = pl_orig.points[ i ].x;
-        added_pt.y = pl_orig.points[ i ].y;
-        added_pt.z = pl_orig.points[ i ].z;
-        added_pt.intensity = pl_orig.points[ i ].intensity;
+        PointType added_pt;
+        added_pt.x = pl_orig.points[i].x;
+        added_pt.y = pl_orig.points[i].y;
+        added_pt.z = pl_orig.points[i].z;
+        added_pt.intensity = pl_orig.points[i].intensity;
         added_pt.normal_x = 0;
         added_pt.normal_y = 0;
         added_pt.normal_z = 0;
-        double yaw_angle = std::atan2( added_pt.y, added_pt.x ) * 57.3;
-        if ( yaw_angle >= 180.0 )
+        double yaw_angle = std::atan2(added_pt.y, added_pt.x) * 57.3;
+        if (yaw_angle >= 180.0)
             yaw_angle -= 360.0;
-        if ( yaw_angle <= -180.0 )
+        if (yaw_angle <= -180.0)
             yaw_angle += 360.0;
 
-        added_pt.curvature = ( pl_orig.points[ i ].t / 1e9 ) * 1000.0;
+        added_pt.curvature = (pl_orig.points[i].t / 1e9) * 1000.0;
 
-        pl_processed.points.push_back( added_pt );
-        if ( 0 ) // For debug
+        pl_processed.points.push_back(added_pt);
+        if (0) // For debug
         {
-            if ( pl_processed.size() % 1000 == 0 )
+            if (pl_processed.size() % 1000 == 0)
             {
-                printf( "[%d] (%.2f, %.2f, %.2f), ( %.2f, %.2f, %.2f ) | %.2f | %.3f,  \r\n", i, pl_orig.points[ i ].x, pl_orig.points[ i ].y,
-                        pl_orig.points[ i ].z, pl_processed.points.back().normal_x, pl_processed.points.back().normal_y,
-                        pl_processed.points.back().normal_z, yaw_angle, pl_processed.points.back().intensity );
+                printf("[%d] (%.2f, %.2f, %.2f), ( %.2f, %.2f, %.2f ) | %.2f | %.3f,  \r\n", i, pl_orig.points[i].x, pl_orig.points[i].y,
+                       pl_orig.points[i].z, pl_processed.points.back().normal_x, pl_processed.points.back().normal_y,
+                       pl_processed.points.back().normal_z, yaw_angle, pl_processed.points.back().intensity);
                 // printf("(%d, %.2f, %.2f)\r\n", pl_orig.points[i].ring, pl_orig.points[i].t, pl_orig.points[i].range);
                 // printf("(%d, %d, %d)\r\n", pl_orig.points[i].ring, 1, 2);
-                cout << ( int ) ( pl_orig.points[ i ].ring ) << ", " << ( pl_orig.points[ i ].t / 1e9 ) << ", " << pl_orig.points[ i ].range << endl;
+                cout << (int)(pl_orig.points[i].ring) << ", " << (pl_orig.points[i].t / 1e9) << ", " << pl_orig.points[i].range << endl;
             }
         }
     }
-    pub_func( pl_processed, pub_full, msg->header.stamp );
-    pub_func( pl_processed, pub_surf, msg->header.stamp );
-    pub_func( pl_processed, pub_corn, msg->header.stamp );
+    pub_func(pl_processed, pub_full, msg->header.stamp);
+    pub_func(pl_processed, pub_surf, msg->header.stamp);
+    pub_func(pl_processed, pub_corn, msg->header.stamp);
 }
 
-
 /**
- * @brief   提取特征点   
+ * @brief   提取特征点
  *      g_if_using_raw_point == 1 使用的原始点云 pl_surf = pl， pl_corn = 空
- * 
+ *
  * @param pl     按scan分的原始点云
- * @param types  
+ * @param types
  * @param pl_corn  特征点:角点
  * @param pl_surf  特征点:面点
  */
-void give_feature( pcl::PointCloud< PointType > &pl, vector< orgtype > &types, pcl::PointCloud< PointType > &pl_corn,
-                   pcl::PointCloud< PointType > &pl_surf )
+void give_feature(pcl::PointCloud<PointType> &pl, vector<orgtype> &types, pcl::PointCloud<PointType> &pl_corn,
+                  pcl::PointCloud<PointType> &pl_surf)
 {
     uint plsize = pl.size();
     uint plsize2;
-    if ( plsize == 0 )
+    if (plsize == 0)
     {
-        printf( "something wrong\n" );
+        printf("something wrong\n");
         return;
     }
 
     // 跳过盲区点云
     uint head = 0;
-    while ( types[ head ].range < blind )
+    while (types[head].range < blind)
     {
         head++;
     }
 
     // Surf
-    plsize2 = ( plsize > group_size ) ? ( plsize - group_size ) : 0;
+    plsize2 = (plsize > group_size) ? (plsize - group_size) : 0;
 
-    Eigen::Vector3d curr_direct( Eigen::Vector3d::Zero() );
-    Eigen::Vector3d last_direct( Eigen::Vector3d::Zero() );
+    Eigen::Vector3d curr_direct(Eigen::Vector3d::Zero());
+    Eigen::Vector3d last_direct(Eigen::Vector3d::Zero());
 
     uint i_nex = 0, i2;
     uint last_i = 0;
     uint last_i_nex = 0;
-    int  last_state = 0;
-    int  plane_type;
+    int last_state = 0;
+    int plane_type;
 
     PointType ap;
-    for ( uint i = head; i < plsize2; i += g_LiDAR_sampling_point_step )
+    for (uint i = head; i < plsize2; i += g_LiDAR_sampling_point_step)
     {
-        if ( types[ i ].range > blind )
+        if (types[i].range > blind)
         {
-            ap.x = pl[ i ].x;
-            ap.y = pl[ i ].y;
-            ap.z = pl[ i ].z;
-            ap.curvature = pl[ i ].curvature; // 曲率里面存的是时间
-            pl_surf.push_back( ap );
+            ap.x = pl[i].x;
+            ap.y = pl[i].y;
+            ap.z = pl[i].z;
+            ap.curvature = pl[i].curvature; // 曲率里面存的是时间
+            pl_surf.push_back(ap);
         }
-        if ( g_if_using_raw_point )
+        if (g_if_using_raw_point)
         {
             continue;
         }
@@ -1144,59 +1153,59 @@ void give_feature( pcl::PointCloud< PointType > &pl, vector< orgtype > &types, p
         i2 = i;
         // std::cout<<" i: "<<i<<" i_nex "<<i_nex<<"group_size: "<<group_size<<" plsize "<<plsize<<" plsize2
         // "<<plsize2<<std::endl;
-        plane_type = plane_judge( pl, types, i, i_nex, curr_direct );
+        plane_type = plane_judge(pl, types, i, i_nex, curr_direct);
 
-        if ( plane_type == 1 )
+        if (plane_type == 1)
         {
-            for ( uint j = i; j <= i_nex; j++ )
+            for (uint j = i; j <= i_nex; j++)
             {
-                if ( j != i && j != i_nex ) // 不在群的首尾
+                if (j != i && j != i_nex) // 不在群的首尾
                 {
-                    types[ j ].ftype = Real_Plane;
+                    types[j].ftype = Real_Plane;
                 }
                 else
                 {
-                    types[ j ].ftype = Poss_Plane;
+                    types[j].ftype = Poss_Plane;
                 }
             }
 
             // if(last_state==1 && fabs(last_direct.sum())>0.5)
-            //last_state == 1上一个群是平面 && last_direct.norm() > 0.1 表示有上一次的方向
-            if ( last_state == 1 && last_direct.norm() > 0.1 ) // 
+            // last_state == 1上一个群是平面 && last_direct.norm() > 0.1 表示有上一次的方向
+            if (last_state == 1 && last_direct.norm() > 0.1) //
             {
-                double mod = last_direct.transpose() * curr_direct;  // 夹角
-                if ( mod > -0.707 && mod < 0.707 )  // 夹角大于45°
+                double mod = last_direct.transpose() * curr_direct; // 夹角
+                if (mod > -0.707 && mod < 0.707)                    // 夹角大于45°
                 {
-                    types[ i ].ftype = Edge_Plane;
+                    types[i].ftype = Edge_Plane;
                 }
                 else
                 {
-                    types[ i ].ftype = Real_Plane;
+                    types[i].ftype = Real_Plane;
                 }
             }
 
             i = i_nex - 1;
             last_state = 1;
         }
-        else if ( plane_type == 2 ) // 盲区点
+        else if (plane_type == 2) // 盲区点
         {
             i = i_nex;
             last_state = 0;
         }
-        else if ( plane_type == 0 )
+        else if (plane_type == 0)
         {
-            if ( last_state == 1 )
+            if (last_state == 1)
             {
                 uint i_nex_tem;
                 uint j;
-                for ( j = last_i + 1; j <= last_i_nex; j++ )
+                for (j = last_i + 1; j <= last_i_nex; j++)
                 {
-                    uint            i_nex_tem2 = i_nex_tem;
+                    uint i_nex_tem2 = i_nex_tem;
                     Eigen::Vector3d curr_direct2;
 
-                    uint ttem = plane_judge( pl, types, j, i_nex_tem, curr_direct2 );
+                    uint ttem = plane_judge(pl, types, j, i_nex_tem, curr_direct2);
 
-                    if ( ttem != 1 )
+                    if (ttem != 1)
                     {
                         i_nex_tem = i_nex_tem2;
                         break;
@@ -1204,21 +1213,21 @@ void give_feature( pcl::PointCloud< PointType > &pl, vector< orgtype > &types, p
                     curr_direct = curr_direct2;
                 }
 
-                if ( j == last_i + 1 )
+                if (j == last_i + 1)
                 {
                     last_state = 0;
                 }
                 else
                 {
-                    for ( uint k = last_i_nex; k <= i_nex_tem; k++ )
+                    for (uint k = last_i_nex; k <= i_nex_tem; k++)
                     {
-                        if ( k != i_nex_tem )
+                        if (k != i_nex_tem)
                         {
-                            types[ k ].ftype = Real_Plane;
+                            types[k].ftype = Real_Plane;
                         }
                         else
                         {
-                            types[ k ].ftype = Poss_Plane;
+                            types[k].ftype = Poss_Plane;
                         }
                     }
                     i = i_nex_tem - 1;
@@ -1233,294 +1242,290 @@ void give_feature( pcl::PointCloud< PointType > &pl, vector< orgtype > &types, p
         last_i_nex = i_nex;
         last_direct = curr_direct;
     }
-    if ( g_if_using_raw_point )
+    if (g_if_using_raw_point)
     {
         return;
     }
     plsize2 = plsize > 3 ? plsize - 3 : 0;
-    for ( uint i = head + 3; i < plsize2; i++ )
+    for (uint i = head + 3; i < plsize2; i++)
     {
-        if ( types[ i ].range < blind || types[ i ].ftype >= Real_Plane )
+        if (types[i].range < blind || types[i].ftype >= Real_Plane)
         {
             continue;
         }
 
-        if ( types[ i - 1 ].dista < 1e-16 || types[ i ].dista < 1e-16 )
+        if (types[i - 1].dista < 1e-16 || types[i].dista < 1e-16)
         {
             continue;
         }
 
-        Eigen::Vector3d vec_a( pl[ i ].x, pl[ i ].y, pl[ i ].z );
-        Eigen::Vector3d vecs[ 2 ];
+        Eigen::Vector3d vec_a(pl[i].x, pl[i].y, pl[i].z);
+        Eigen::Vector3d vecs[2];
 
-        for ( int j = 0; j < 2; j++ )
+        for (int j = 0; j < 2; j++)
         {
             int m = -1;
-            if ( j == 1 )
+            if (j == 1)
             {
                 m = 1;
             }
 
-            if ( types[ i + m ].range < blind )
+            if (types[i + m].range < blind)
             {
-                if ( types[ i ].range > inf_bound )
+                if (types[i].range > inf_bound)
                 {
-                    types[ i ].edj[ j ] = Nr_inf;
+                    types[i].edj[j] = Nr_inf;
                 }
                 else
                 {
-                    types[ i ].edj[ j ] = Nr_blind;
+                    types[i].edj[j] = Nr_blind;
                 }
                 continue;
             }
 
-            vecs[ j ] = Eigen::Vector3d( pl[ i + m ].x, pl[ i + m ].y, pl[ i + m ].z );
-            vecs[ j ] = vecs[ j ] - vec_a;
+            vecs[j] = Eigen::Vector3d(pl[i + m].x, pl[i + m].y, pl[i + m].z);
+            vecs[j] = vecs[j] - vec_a;
 
-            types[ i ].angle[ j ] = vec_a.dot( vecs[ j ] ) / vec_a.norm() / vecs[ j ].norm();
-            if ( types[ i ].angle[ j ] < jump_up_limit )
+            types[i].angle[j] = vec_a.dot(vecs[j]) / vec_a.norm() / vecs[j].norm();
+            if (types[i].angle[j] < jump_up_limit)
             {
-                types[ i ].edj[ j ] = Nr_180;
+                types[i].edj[j] = Nr_180;
             }
-            else if ( types[ i ].angle[ j ] > jump_down_limit )
+            else if (types[i].angle[j] > jump_down_limit)
             {
-                types[ i ].edj[ j ] = Nr_zero;
+                types[i].edj[j] = Nr_zero;
             }
         }
 
-        types[ i ].intersect = vecs[ Prev ].dot( vecs[ Next ] ) / vecs[ Prev ].norm() / vecs[ Next ].norm();
-        if ( types[ i ].edj[ Prev ] == Nr_nor && types[ i ].edj[ Next ] == Nr_zero && types[ i ].dista > 0.0225 &&
-             types[ i ].dista > 4 * types[ i - 1 ].dista )
+        types[i].intersect = vecs[Prev].dot(vecs[Next]) / vecs[Prev].norm() / vecs[Next].norm();
+        if (types[i].edj[Prev] == Nr_nor && types[i].edj[Next] == Nr_zero && types[i].dista > 0.0225 &&
+            types[i].dista > 4 * types[i - 1].dista)
         {
-            if ( types[ i ].intersect > cos160 )
+            if (types[i].intersect > cos160)
             {
-                if ( edge_jump_judge( pl, types, i, Prev ) )
+                if (edge_jump_judge(pl, types, i, Prev))
                 {
-                    types[ i ].ftype = Edge_Jump;
+                    types[i].ftype = Edge_Jump;
                 }
             }
         }
-        else if ( types[ i ].edj[ Prev ] == Nr_zero && types[ i ].edj[ Next ] == Nr_nor && types[ i - 1 ].dista > 0.0225 &&
-                  types[ i - 1 ].dista > 4 * types[ i ].dista )
+        else if (types[i].edj[Prev] == Nr_zero && types[i].edj[Next] == Nr_nor && types[i - 1].dista > 0.0225 &&
+                 types[i - 1].dista > 4 * types[i].dista)
         {
-            if ( types[ i ].intersect > cos160 )
+            if (types[i].intersect > cos160)
             {
-                if ( edge_jump_judge( pl, types, i, Next ) )
+                if (edge_jump_judge(pl, types, i, Next))
                 {
-                    types[ i ].ftype = Edge_Jump;
+                    types[i].ftype = Edge_Jump;
                 }
             }
         }
-        else if ( types[ i ].edj[ Prev ] == Nr_nor && types[ i ].edj[ Next ] == Nr_inf )
+        else if (types[i].edj[Prev] == Nr_nor && types[i].edj[Next] == Nr_inf)
         {
-            if ( edge_jump_judge( pl, types, i, Prev ) )
+            if (edge_jump_judge(pl, types, i, Prev))
             {
-                types[ i ].ftype = Edge_Jump;
+                types[i].ftype = Edge_Jump;
             }
         }
-        else if ( types[ i ].edj[ Prev ] == Nr_inf && types[ i ].edj[ Next ] == Nr_nor )
+        else if (types[i].edj[Prev] == Nr_inf && types[i].edj[Next] == Nr_nor)
         {
-            if ( edge_jump_judge( pl, types, i, Next ) )
+            if (edge_jump_judge(pl, types, i, Next))
             {
-                types[ i ].ftype = Edge_Jump;
+                types[i].ftype = Edge_Jump;
             }
         }
-        else if ( types[ i ].edj[ Prev ] > Nr_nor && types[ i ].edj[ Next ] > Nr_nor )
+        else if (types[i].edj[Prev] > Nr_nor && types[i].edj[Next] > Nr_nor)
         {
-            if ( types[ i ].ftype == Nor )
+            if (types[i].ftype == Nor)
             {
-                types[ i ].ftype = Wire;
+                types[i].ftype = Wire;
             }
         }
     }
 
     plsize2 = plsize - 1;
     double ratio;
-    for ( uint i = head + 1; i < plsize2; i++ )
+    for (uint i = head + 1; i < plsize2; i++)
     {
-        if ( types[ i ].range < blind || types[ i - 1 ].range < blind || types[ i + 1 ].range < blind )
+        if (types[i].range < blind || types[i - 1].range < blind || types[i + 1].range < blind)
         {
             continue;
         }
 
-        if ( types[ i - 1 ].dista < 1e-8 || types[ i ].dista < 1e-8 )
+        if (types[i - 1].dista < 1e-8 || types[i].dista < 1e-8)
         {
             continue;
         }
 
-        if ( types[ i ].ftype == Nor )
+        if (types[i].ftype == Nor)
         {
-            if ( types[ i - 1 ].dista > types[ i ].dista )
+            if (types[i - 1].dista > types[i].dista)
             {
-                ratio = types[ i - 1 ].dista / types[ i ].dista;
+                ratio = types[i - 1].dista / types[i].dista;
             }
             else
             {
-                ratio = types[ i ].dista / types[ i - 1 ].dista;
+                ratio = types[i].dista / types[i - 1].dista;
             }
 
-            if ( types[ i ].intersect < smallp_intersect && ratio < smallp_ratio )
+            if (types[i].intersect < smallp_intersect && ratio < smallp_ratio)
             {
-                if ( types[ i - 1 ].ftype == Nor )
+                if (types[i - 1].ftype == Nor)
                 {
-                    types[ i - 1 ].ftype = Real_Plane;
+                    types[i - 1].ftype = Real_Plane;
                 }
-                if ( types[ i + 1 ].ftype == Nor )
+                if (types[i + 1].ftype == Nor)
                 {
-                    types[ i + 1 ].ftype = Real_Plane;
+                    types[i + 1].ftype = Real_Plane;
                 }
-                types[ i ].ftype = Real_Plane;
+                types[i].ftype = Real_Plane;
             }
         }
     }
 
     int last_surface = -1;
-    for ( uint j = head; j < plsize; j++ )
+    for (uint j = head; j < plsize; j++)
     {
-        if ( types[ j ].ftype == Poss_Plane || types[ j ].ftype == Real_Plane )
+        if (types[j].ftype == Poss_Plane || types[j].ftype == Real_Plane)
         {
-            if ( last_surface == -1 )
+            if (last_surface == -1)
             {
                 last_surface = j;
             }
 
-            if ( j == uint( last_surface + point_filter_num - 1 ) )
+            if (j == uint(last_surface + point_filter_num - 1))
             {
                 PointType ap;
-                ap.x = pl[ j ].x;
-                ap.y = pl[ j ].y;
-                ap.z = pl[ j ].z;
-                ap.curvature = pl[ j ].curvature;
-                pl_surf.push_back( ap );
+                ap.x = pl[j].x;
+                ap.y = pl[j].y;
+                ap.z = pl[j].z;
+                ap.curvature = pl[j].curvature;
+                pl_surf.push_back(ap);
 
                 last_surface = -1;
             }
         }
         else
         {
-            if ( types[ j ].ftype == Edge_Jump || types[ j ].ftype == Edge_Plane )
+            if (types[j].ftype == Edge_Jump || types[j].ftype == Edge_Plane)
             {
-                pl_corn.push_back( pl[ j ] );
+                pl_corn.push_back(pl[j]);
             }
-            if ( last_surface != -1 )
+            if (last_surface != -1)
             {
                 PointType ap;
-                for ( uint k = last_surface; k < j; k++ )
+                for (uint k = last_surface; k < j; k++)
                 {
-                    ap.x += pl[ k ].x;
-                    ap.y += pl[ k ].y;
-                    ap.z += pl[ k ].z;
-                    ap.curvature += pl[ k ].curvature;
+                    ap.x += pl[k].x;
+                    ap.y += pl[k].y;
+                    ap.z += pl[k].z;
+                    ap.curvature += pl[k].curvature;
                 }
-                ap.x /= ( j - last_surface );
-                ap.y /= ( j - last_surface );
-                ap.z /= ( j - last_surface );
-                ap.curvature /= ( j - last_surface );
-                pl_surf.push_back( ap );
+                ap.x /= (j - last_surface);
+                ap.y /= (j - last_surface);
+                ap.z /= (j - last_surface);
+                ap.curvature /= (j - last_surface);
+                pl_surf.push_back(ap);
             }
             last_surface = -1;
         }
     }
 }
 
-void pub_func( pcl::PointCloud< PointType > &pl, ros::Publisher pub, const ros::Time &ct )
+void pub_func(pcl::PointCloud<PointType> &pl, ros::Publisher pub, const ros::Time &ct)
 {
-    
+
     pl.height = 1;
     pl.width = pl.size();
     sensor_msgs::PointCloud2 output;
- 
-    pcl::toROSMsg( pl, output );
-   
+
+    pcl::toROSMsg(pl, output);
+
     output.header.frame_id = "livox";
     output.header.stamp = ct;
 
-    pub.publish( output );
-  
+    pub.publish(output);
 }
-
-
-
 
 /**
  * @brief    判断一个点是否是平面点，计算群的方向
- * 
+ *
  * @param pl            全部点云
- * @param types 
+ * @param types
  * @param i_cur         当前点索引
  * @param i_nex         同一个群里的下一个点索引（退出时为下一个群的起点）
  * @param curr_direct   群内第一个点指向最后一个点的方向向量
  * @return int   0不是 1 平面  2盲区
  */
-int plane_judge( const pcl::PointCloud< PointType > &pl, vector< orgtype > &types, uint i_cur, uint &i_nex, Eigen::Vector3d &curr_direct )
+int plane_judge(const pcl::PointCloud<PointType> &pl, vector<orgtype> &types, uint i_cur, uint &i_nex, Eigen::Vector3d &curr_direct)
 {
-     // 计算一个群的距离
-    double group_dis = disA * types[ i_cur ].range + disB; 
+    // 计算一个群的距离
+    double group_dis = disA * types[i_cur].range + disB;
     group_dis = group_dis * group_dis;
     // i_nex = i_cur;
 
-    double           two_dis;
-    vector< double > disarr; // 当前点和下一个点之间的距离
-    disarr.reserve( 20 );
+    double two_dis;
+    vector<double> disarr; // 当前点和下一个点之间的距离
+    disarr.reserve(20);
 
-    for ( i_nex = i_cur; i_nex < i_cur + group_size; i_nex++ )
+    for (i_nex = i_cur; i_nex < i_cur + group_size; i_nex++)
     {
-        if ( types[ i_nex ].range < blind )
+        if (types[i_nex].range < blind)
         {
             curr_direct.setZero();
             return 2;
         }
-        disarr.push_back( types[ i_nex ].dista );
+        disarr.push_back(types[i_nex].dista);
     }
 
     // 无限循环指导距离内的点都加入进一个群
-    for ( ;; )
+    for (;;)
     {
-        if ( ( i_cur >= pl.size() ) || ( i_nex >= pl.size() ) )
+        if ((i_cur >= pl.size()) || (i_nex >= pl.size()))
             break;
 
-        if ( types[ i_nex ].range < blind )
+        if (types[i_nex].range < blind)
         {
             curr_direct.setZero();
             return 2;
         }
-        vx = pl[ i_nex ].x - pl[ i_cur ].x;
-        vy = pl[ i_nex ].y - pl[ i_cur ].y;
-        vz = pl[ i_nex ].z - pl[ i_cur ].z;
+        vx = pl[i_nex].x - pl[i_cur].x;
+        vy = pl[i_nex].y - pl[i_cur].y;
+        vz = pl[i_nex].z - pl[i_cur].z;
         two_dis = vx * vx + vy * vy + vz * vz;
-        if ( two_dis >= group_dis )
+        if (two_dis >= group_dis)
         {
             break;
         }
-        disarr.push_back( types[ i_nex ].dista );
+        disarr.push_back(types[i_nex].dista);
         i_nex++;
     }
 
     // 退出上的循环后，vx,vy,vz代 表群内第一个点指向最后一个点的方向
     double leng_wid = 0; // 存储最大的垂直距离
-    double v1[ 3 ], v2[ 3 ];
+    double v1[3], v2[3];
     // 遍历群中每一个点
-    for ( uint j = i_cur + 1; j < i_nex; j++ )
+    for (uint j = i_cur + 1; j < i_nex; j++)
     {
-        if ( ( j >= pl.size() ) || ( i_cur >= pl.size() ) )
+        if ((j >= pl.size()) || (i_cur >= pl.size()))
             break;
-        v1[ 0 ] = pl[ j ].x - pl[ i_cur ].x;
-        v1[ 1 ] = pl[ j ].y - pl[ i_cur ].y;
-        v1[ 2 ] = pl[ j ].z - pl[ i_cur ].z;
+        v1[0] = pl[j].x - pl[i_cur].x;
+        v1[1] = pl[j].y - pl[i_cur].y;
+        v1[2] = pl[j].z - pl[i_cur].z;
 
         // 叉乘
-        v2[ 0 ] = v1[ 1 ] * vz - vy * v1[ 2 ];
-        v2[ 1 ] = v1[ 2 ] * vx - v1[ 0 ] * vz;
-        v2[ 2 ] = v1[ 0 ] * vy - vx * v1[ 1 ];
+        v2[0] = v1[1] * vz - vy * v1[2];
+        v2[1] = v1[2] * vx - v1[0] * vz;
+        v2[2] = v1[0] * vy - vx * v1[1];
 
-        double lw = v2[ 0 ] * v2[ 0 ] + v2[ 1 ] * v2[ 1 ] + v2[ 2 ] * v2[ 2 ];
-        if ( lw > leng_wid )
+        double lw = v2[0] * v2[0] + v2[1] * v2[1] + v2[2] * v2[2];
+        if (lw > leng_wid)
         {
             leng_wid = lw;
         }
     }
 
-    if ( ( two_dis * two_dis / leng_wid ) < p2l_ratio )
+    if ((two_dis * two_dis / leng_wid) < p2l_ratio)
     {
         curr_direct.setZero();
         return 0;
@@ -1528,31 +1533,31 @@ int plane_judge( const pcl::PointCloud< PointType > &pl, vector< orgtype > &type
 
     // 从大到小排序
     uint disarrsize = disarr.size();
-    for ( uint j = 0; j < disarrsize - 1; j++ )
+    for (uint j = 0; j < disarrsize - 1; j++)
     {
-        for ( uint k = j + 1; k < disarrsize; k++ )
+        for (uint k = j + 1; k < disarrsize; k++)
         {
-            if ( disarr[ j ] < disarr[ k ] )
+            if (disarr[j] < disarr[k])
             {
-                leng_wid = disarr[ j ];
-                disarr[ j ] = disarr[ k ];
-                disarr[ k ] = leng_wid;
+                leng_wid = disarr[j];
+                disarr[j] = disarr[k];
+                disarr[k] = leng_wid;
             }
         }
     }
 
-    if ( disarr[ disarr.size() - 2 ] < 1e-16 )
+    if (disarr[disarr.size() - 2] < 1e-16)
     {
         curr_direct.setZero();
         return 0;
     }
 
-    if ( lidar_type == MID || lidar_type == HORIZON )
+    if (lidar_type == MID || lidar_type == HORIZON)
     {
-        double dismax_mid = disarr[ 0 ] / disarr[ disarrsize / 2 ]; // 最大值/中值
-        double dismid_min = disarr[ disarrsize / 2 ] / disarr[ disarrsize - 2 ]; // 中值/最小值
+        double dismax_mid = disarr[0] / disarr[disarrsize / 2];              // 最大值/中值
+        double dismid_min = disarr[disarrsize / 2] / disarr[disarrsize - 2]; // 中值/最小值
 
-        if ( dismax_mid >= limit_maxmid || dismid_min >= limit_midmin )
+        if (dismax_mid >= limit_maxmid || dismid_min >= limit_midmin)
         {
             curr_direct.setZero();
             return 0;
@@ -1560,8 +1565,8 @@ int plane_judge( const pcl::PointCloud< PointType > &pl, vector< orgtype > &type
     }
     else
     {
-        double dismax_min = disarr[ 0 ] / disarr[ disarrsize - 2 ];// 最大值/最小值
-        if ( dismax_min >= limit_maxmin )
+        double dismax_min = disarr[0] / disarr[disarrsize - 2]; // 最大值/最小值
+        if (dismax_min >= limit_maxmin)
         {
             curr_direct.setZero();
             return 0;
@@ -1573,37 +1578,37 @@ int plane_judge( const pcl::PointCloud< PointType > &pl, vector< orgtype > &type
     return 1;
 }
 
-bool edge_jump_judge( const pcl::PointCloud< PointType > &pl, vector< orgtype > &types, uint i, Surround nor_dir )
+bool edge_jump_judge(const pcl::PointCloud<PointType> &pl, vector<orgtype> &types, uint i, Surround nor_dir)
 {
-    if ( nor_dir == 0 )
+    if (nor_dir == 0)
     {
-        if ( types[ i - 1 ].range < blind || types[ i - 2 ].range < blind )
+        if (types[i - 1].range < blind || types[i - 2].range < blind)
         {
             return false;
         }
     }
-    else if ( nor_dir == 1 )
+    else if (nor_dir == 1)
     {
-        if ( types[ i + 1 ].range < blind || types[ i + 2 ].range < blind )
+        if (types[i + 1].range < blind || types[i + 2].range < blind)
         {
             return false;
         }
     }
-    double d1 = types[ i + nor_dir - 1 ].dista;
-    double d2 = types[ i + 3 * nor_dir - 2 ].dista;
+    double d1 = types[i + nor_dir - 1].dista;
+    double d2 = types[i + 3 * nor_dir - 2].dista;
     double d;
 
-    if ( d1 < d2 )
+    if (d1 < d2)
     {
         d = d1;
         d1 = d2;
         d2 = d;
     }
 
-    d1 = sqrt( d1 );
-    d2 = sqrt( d2 );
+    d1 = sqrt(d1);
+    d2 = sqrt(d2);
 
-    if ( d1 > edgea * d2 || ( d1 - d2 ) > edgeb )
+    if (d1 > edgea * d2 || (d1 - d2) > edgeb)
     {
         return false;
     }

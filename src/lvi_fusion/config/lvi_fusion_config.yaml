@@ -23,9 +23,9 @@ lvi_fusion_common:
    gpsTopic: "/gps/fix222"  
    gpsOdomTopic: "/gps/correct_odom"
    mappingProcessInterval: 0.1
-   intialMethod: "human"  # gps  human
+   intialMethod: "gps"  # gps  human
    initialPose: [0,0,0]
-   optimization_with_GPS: false
+   optimization_with_GPS: true
    surroundingkeyframeAddingDistThreshold: 1.0   # meters, regulate keyframe adding threshold
    surroundingkeyframeAddingAngleThreshold: 0.2  # radians, regulate keyframe adding threshold
    mappingSurfLeafSize: 0.4
@@ -40,7 +40,7 @@ lvi_fusion_common:
    loopClosureFrequency: 1.0                     # Hz, regulate loop closure constraint add frequency 1.0
    historyKeyframeSearchNum: 25                  # number of hostory key frames will be fused into a submap for loop closure
    historyKeyframeSearchRadius: 15.0             # meters, key frame that is within n meters from current pose will be considerd for loop closure
-   historyKeyframeFitnessScore: 0.5             # icp threshold, the smaller the better alignment
+   historyKeyframeFitnessScore: 0.5              # icp threshold, the smaller the better alignment
    historyKeyframeSearchTimeDiff: 30.0           # seconds, key frame that is n seconds older will be considered for loop closure
    surroundingKeyframeSize: 50                   # submap size (when loop closure enabled)     50
 
@@ -51,21 +51,23 @@ lvi_fusion_common:
    useGpsElevation: false                      # 海拔高度，是否使用gps确定z的位置if GPS elevation is bad, set to "false"
 
 lvi_fusion_vio:
-   image_width: 1280
-   image_height: 1024
+   image_width: 1920
+   image_height: 1200
    camera_intrinsic:
-      [863.4241, 0.0, 640.6808,
-      0.0,  863.4171, 518.3392,
-      0.0, 0.0, 1.0 ] 
-   camera_dist_coeffs: [-0.1080, 0.1050, -1.2872e-04, 5.7923e-05, -0.0222]  #k1, k2, p1, p2, k3
+      [1459.709433, 0.000000, 963.971858, 0.000000, 1457.876069, 632.135856, 0.000000, 0.000000, 1.000000] 
+   camera_dist_coeffs: [0.014973, -0.004613, 0.001171, -0.000469, 0.000000]  #k1, k2, p1, p2, k3
    # Rci
    # Fine extrinsic value. form camera-LiDAR calibration.
    camera_ext_R:
-         [-0.00113207, -0.0158688, 0.999873,
-            -0.9999999,  -0.000486594, -0.00113994,
-            0.000504622,  -0.999874,  -0.0158682]
+      [0.991934,0.125705,-0.0163415, 
+     -0.019153,0.021165,-0.999589,
+     -0.125345,0.991838, 0.0234122]
+   # camera_ext_R:
+   #       [-0.00113207, -0.0158688, 0.999873,
+   #          -0.9999999,  -0.000486594, -0.00113994,
+   #          0.000504622,  -0.999874,  -0.0158682]
    # camera_ext_t: [0.050166, 0.0474116, -0.0312415] 
-   camera_ext_t: [0,0,0] 
+   camera_ext_t: [-0.02173,0,-0.0815692.0158328] 
    # Rough extrinsic value, form CAD model, is not correct enough, but can be online calibrated in our datasets.
    # camera_ext_R:
    #    [0, 0, 1,

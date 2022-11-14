@@ -1,13 +1,14 @@
 <launch>
     <!-- Subscribed topics -->
     <param name="LiDAR_pointcloud_topic" type="string" value= "/laser_cloud_flat" />
-    <param name="IMU_topic" type="string" value= "/livox/imu" />
-    <param name="Image_topic" type="string" value= "/camera/image_color" />   <!-- /camera/image_color   /gmsl_cam/image_raw -->
+    <param name="IMU_topic" type="string" value= "/ins550d/imu/data" />
+    <param name="Image_topic" type="string" value= "/wideangle/image_color" />   <!-- /camera/image_color   /gmsl_cam/image_raw -->
     <param name="lvi_fusion_common/map_output_dir" type="string" value="$(env HOME)/lvi_fusion_output" />
     <rosparam command="load" file="$(find lvi_fusion)/../config/lvi_fusion_config.yaml" />
 
     <node pkg="lvi_fusion" type="lvi_fusion_LiDAR_front_end" name="lvi_fusion_LiDAR_front_end"  output="screen" required="true"/>
     <node pkg="lvi_fusion" type="lvi_fusion_mapping" name="lvi_fusion_mapping" output="screen" required="true"/>
+    <param name="save_directory" type="string" value="$(env HOME)/my_lvi_fusion/lvi_fusion-commmet/data/"/>  <!-- CHANGE THIS and end with / -->
     <node pkg="lvi_fusion" type="map_build" name="map_build" output="screen" required="true"/>
     
     <arg name="rviz" default="1" />
